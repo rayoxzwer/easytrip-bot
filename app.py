@@ -14,7 +14,7 @@ from google.genai import types as genai_types
 # Setup Logging Metrics
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Extract secrets securely from Hugging Face / Render environment injections
+# Extract secrets securely from environment injections
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -29,7 +29,6 @@ ai_client = genai.Client(api_key=GEMINI_API_KEY)
 DB_FILE = "easy_trip.db"
 
 # Global set to maintain strong references to running background processes
-# This explicitly prevents Python's Garbage Collector from killing our bot loop
 active_background_tasks = set()
 
 # =====================================================================
@@ -101,17 +100,24 @@ async def cmd_start(message: types.Message):
     await message.answer(welcome)
 
 @dp.message()
-try:
-        response = ai_client.models.generate_content(
+async def handle_chat_turn(message: types.Message):
+    user_id = message.from_user.id
+    if not message.text:
+        return
+
+    save_message(user_id, "user", message.text)
+
+    try:
+        # OPTIMIZED: Using non-blocking .aio interface for concurrent event loops
+        response = await ai_client.aio.models.generate_content(
             model="gemini-2.0-flash",
             contents=message.text
         )
         await message.answer(response.text)
-
     except Exception as e:
         logging.error(f"Engine Exception: {e}")
-        # SWAP THE FALLBACK STRING FOR THIS LIVE DEBUG LINE:
         await message.answer(f"❌ Debug Error: {str(e)}")
+
 # =====================================================================
 # RESILIENT BACKGROUND SUPERVISOR
 # =====================================================================
@@ -124,7 +130,6 @@ async def run_bot_resiliently():
     while True:
         try:
             logging.info("Launching aiogram polling engine...")
-            # Enforce an explicit 30-second long-polling timeout
             await dp.start_polling(bot, handle_signals=False, polling_timeout=30)
         except asyncio.CancelledError:
             logging.info("Polling worker received cancellation signal. Exiting clean.")
