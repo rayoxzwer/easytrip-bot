@@ -109,23 +109,15 @@ async def handle_chat_turn(message: types.Message):
     history = get_history(user_id)
 
     try:
-        response = ai_client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=history,
-            config=genai_types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION, tools=[submit_travel_intake], temperature=0.6
-            )
-        )
+    # Pass the exact model string to the SDK
+    response = ai_client.models.generate_content(
+        model="gemini-3.5-flash",
+        contents=message.text
+    )
+    
+    # Reply to the user on Telegram
+    await message.answer(response.text)
 
-        if response.function_calls:
-            for call in response.function_calls:
-                if call.name == "submit_travel_intake":
-                    save_final_intake(user_id, username, call.args)
-                    await message.answer("✨ Perfect! I've logged your travel profile. Our experts will contact you here within an hour! 🚀")
-                    return
-
-        save_message(user_id, "model", response.text)
-        await message.answer(response.text)
     except Exception as e:
         logging.error(f"Engine Exception: {e}")
         await message.answer("My system hit a bump! Could you say that again?")
