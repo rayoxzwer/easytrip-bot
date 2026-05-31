@@ -113,10 +113,11 @@ ONLY after the user confirms everything looks good (e.g., says "yes", "looks gre
 Generate a comprehensive, highly specific breakdown for their destination matching their budget. You MUST include:
 - Transit tips: Specific transit modes (e.g., Metro, local buses) with real approximate costs (e.g., Metro ticket - $3).
 - Lodging/Accommodations: Estimated nightly rates for their specific budget tier in suggested local neighborhoods.
-- Food & Dining: Specific local dishes or street food examples with real local pricing (e.g., Doner Kebab - $2, Balik Ekmek - $3).
+- Food & Dining: Specific local dishes or street food examples with real local pricing, try to include around 5-6 different food types and drinks that are popular in Turkey (e.g., Doner Kebab - $2, Balik Ekmek - $3, popular ice cream trucks, etc.).
 - Historical/Sightseeing Routes: Name specific attractions, how to get there, and approximate entry ticket fees.
 
-Format this plan beautifully using bullet points and bold titles. At the absolute end of your detailed response text, append the exact token: [TRIGGER_PDF]
+Format this plan beautifully using bullet points and bold titles. At the absolute end of your detailed response text, append the exact token and generate the pdf file: [TRIGGER_PDF]
+Don't make the user wait too long, and whenever you are processing or working on the plan, let the user know about it.
 """
 
 # =====================================================================
