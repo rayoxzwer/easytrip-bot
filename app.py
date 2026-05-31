@@ -105,19 +105,42 @@ async def handle_chat_turn(message: types.Message):
     if not message.text:
         return
 
+    # 1. Archive the new user utterance into local storage
     save_message(user_id, "user", message.text)
 
-    try:
-
-        response = await ai_client.aio.models.generate_content(
-            model="gemini-3.5-flash", 
-            contents=message.text
+    # 2. Reconstruct entire sequential chat history stream for the AI
+    history_rows = get_history(user_id)
+    contents_payload = []
+    for row in history_rows:
+        contents_payload.append(
+            genai_types.Content(
+                role=row["role"],
+                parts=[genai_types.Part.from_text(text=row["parts"][0])]
+            )
         )
-        await message.answer(response.text)
+
+    try:
+        # 3. Call Gemini with Persona, Memory, and structural Constraints
+        response = await ai_client.aio.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents_payload,
+            config=genai_types.GenerateContentConfig(
+                system_instruction=SYSTEM_INSTRUCTION,
+                max_output_tokens=600,  # Hard safety ceiling to completely stop Telegram length errors
+                temperature=0.7
+            )
+        )
+        
+        # 4. Finalize the turn: Save the AI's response to history and reply
+        if response.text:
+            save_message(user_id, "model", response.text)
+            await message.answer(response.text)
+        else:
+            await message.answer("I'm looking into your trip details! Could you rephrase that?")
+
     except Exception as e:
         logging.error(f"Engine Exception: {e}")
         await message.answer(f"❌ Debug Error: {str(e)}")
-
 # =====================================================================
 # RESILIENT BACKGROUND SUPERVISOR
 # =====================================================================
