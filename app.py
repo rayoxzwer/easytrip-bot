@@ -111,7 +111,7 @@ async def handle_chat_turn(message: types.Message):
     try:
     # Pass the exact model string to the SDK
     response = ai_client.models.generate_content(
-        model="gemini-3.5-flash",
+        model="gemini-2.0-flash",
         contents=message.text
     )
     
