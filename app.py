@@ -26,7 +26,7 @@ if not TELEGRAM_TOKEN or not GEMINI_API_KEY:
 bot = Bot(token=TELEGRAM_TOKEN)
 dp = Dispatcher()
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
-DB_FILE = "/code/easy_trip.db"
+DB_FILE = "easy_trip.db"
 # Global set to maintain strong references to running background processes
 # This explicitly prevents Python's Garbage Collector from killing our bot loop
 active_background_tasks = set()
