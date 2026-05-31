@@ -101,28 +101,17 @@ async def cmd_start(message: types.Message):
     await message.answer(welcome)
 
 @dp.message()
-async def handle_chat_turn(message: types.Message):
-    user_id = message.from_user.id
-    username = message.from_user.username or "Unknown"
-    if not message.text: return
-
-    save_message(user_id, "user", message.text)
-    history = get_history(user_id)
-
-    try:
-        # FIXED: Proper 8-space indentation inside the try block
+try:
         response = ai_client.models.generate_content(
             model="gemini-2.0-flash",
             contents=message.text
         )
-        
-        # Reply to the user on Telegram
         await message.answer(response.text)
 
     except Exception as e:
         logging.error(f"Engine Exception: {e}")
-        await message.answer("My system hit a bump! Could you say that again?")
-
+        # SWAP THE FALLBACK STRING FOR THIS LIVE DEBUG LINE:
+        await message.answer(f"❌ Debug Error: {str(e)}")
 # =====================================================================
 # RESILIENT BACKGROUND SUPERVISOR
 # =====================================================================
