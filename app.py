@@ -146,7 +146,7 @@ async def handle_chat_turn(message: types.Message):
 
     try:
         response = await ai_client.aio.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash",
             contents=contents_payload,
             config=genai_types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION,
