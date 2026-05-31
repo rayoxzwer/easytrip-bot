@@ -155,6 +155,19 @@ async def handle_chat_turn(message: types.Message):
             )
         )
         
+    except Exception as e:
+        error_msg = str(e)
+        logging.error(f"Engine Exception: {error_msg}")
+        
+        # Gracefully catch the 429 without entering an aggressive loop
+        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+            await message.answer("⏳ *EasyTrip is taking a brief 60-second breathers due to high traffic. Please wait one minute before sending your next message!*", parse_mode="Markdown")
+            return
+        
+        await message.answer(f"❌ Debug Error: {error_msg}")
+        return
+
+    try:
         ai_response_text = response.text if response.text else ""
 
         if "[TRIGGER_PDF]" in ai_response_text:
@@ -169,7 +182,6 @@ async def handle_chat_turn(message: types.Message):
             
             await message.answer_document(document=input_file, caption="✈️ Ready! Here is your official EasyTrip travel plan document. Have an amazing trip!")
             
-            # Flush history clean for their next session
             conn = sqlite3.connect(DB_FILE)
             cursor = conn.cursor()
             cursor.execute("DELETE FROM chat_history WHERE user_id = ?", (user_id,))
@@ -180,14 +192,11 @@ async def handle_chat_turn(message: types.Message):
                 save_message(user_id, "model", ai_response_text)
                 await message.answer(ai_response_text)
             else:
-                # Upgraded fallback warning for clearer diagnostics
-                logging.warning(f"Empty text token generated for user: {user_id}")
                 await message.answer("Let's make sure I have that down correctly. Could you repeat your last response?")
 
     except Exception as e:
-        logging.error(f"Engine Exception: {e}")
-        await message.answer(f"❌ Debug Error: {str(e)}")
-
+        logging.error(f"Post-processing Failure: {e}")
+        await message.answer(f"❌ Post-processing Error: {str(e)}")
 # =====================================================================
 # LIFECYCLE MANAGEMENT & WEB SYSTEM
 # =====================================================================
