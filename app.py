@@ -14,7 +14,7 @@ from google.genai import types as genai_types
 # Setup Logging Metrics
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Extract secrets securely from Hugging Face environment injections
+# Extract secrets securely from Hugging Face / Render environment injections
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -27,6 +27,7 @@ bot = Bot(token=TELEGRAM_TOKEN)
 dp = Dispatcher()
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 DB_FILE = "easy_trip.db"
+
 # Global set to maintain strong references to running background processes
 # This explicitly prevents Python's Garbage Collector from killing our bot loop
 active_background_tasks = set()
@@ -109,14 +110,14 @@ async def handle_chat_turn(message: types.Message):
     history = get_history(user_id)
 
     try:
-    # Pass the exact model string to the SDK
-    response = ai_client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=message.text
-    )
-    
-    # Reply to the user on Telegram
-    await message.answer(response.text)
+        # FIXED: Proper 8-space indentation inside the try block
+        response = ai_client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=message.text
+        )
+        
+        # Reply to the user on Telegram
+        await message.answer(response.text)
 
     except Exception as e:
         logging.error(f"Engine Exception: {e}")
@@ -125,8 +126,6 @@ async def handle_chat_turn(message: types.Message):
 # =====================================================================
 # RESILIENT BACKGROUND SUPERVISOR
 # =====================================================================
-active_background_tasks = set()
-
 async def run_bot_resiliently():
     """
     Supervises the Telegram polling engine. If an unhandled network or proxy 
