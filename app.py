@@ -109,8 +109,9 @@ async def handle_chat_turn(message: types.Message):
 
     try:
         # OPTIMIZED: Using non-blocking .aio interface for concurrent event loops
+        # Switch from 2.0-flash to 1.5-flash
         response = await ai_client.aio.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-1.5-flash", 
             contents=message.text
         )
         await message.answer(response.text)
