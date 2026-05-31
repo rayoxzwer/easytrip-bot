@@ -169,14 +169,14 @@ async def handle_chat_turn(message: types.Message):
     if not message.text:
         return
 
-    # FIX: Anti-Spam state tracking intercepts impatient double-typing instantly
+    # Anti-Spam state tracking intercepts impatient double-typing instantly
     if user_id in processing_users:
         await message.answer("⏳ *I'm already working on it! Just a few more adjustments to your itinerary, give me a brief moment...* ✈️", parse_mode="Markdown")
         return
 
     history_rows = get_history(user_id)
     
-    # PROACTIVE STEP: Answer immediately if the user is giving their final verification confirmation
+    # Proactive check to see if the user is confirming the summary layout
     is_confirming_final_plan = False
     for row in reversed(history_rows):
         if row['role'] == 'model' and "Final Plan Review" in row['parts'][0]:
@@ -186,7 +186,6 @@ async def handle_chat_turn(message: types.Message):
     confirm_keywords = ["yes", "good", "great", "ok", "fine", "perfect", "finalize", "sure", "yep", "no changes", "looks good"]
     
     if is_confirming_final_plan and any(kw in message.text.lower() for kw in confirm_keywords):
-        # Sends an interactive confirmation message BEFORE waiting on the long Gemini API call execution
         await message.answer("🚀 *Got your confirmation! Building your detailed itinerary right now. Just a few final adjustments...* ✈️", parse_mode="Markdown")
 
     # Lock down the processing pipeline for this user ID
@@ -207,7 +206,7 @@ async def handle_chat_turn(message: types.Message):
             contents=contents_payload,
             config=genai_types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION,
-                max_output_tokens=1000,
+                max_output_tokens=2000, # Clean headroom allocation
                 temperature=0.3
             )
         )
@@ -217,17 +216,42 @@ async def handle_chat_turn(message: types.Message):
         if "[TRIGGER_PDF]" in ai_response_text:
             clean_itinerary = ai_response_text.replace("[TRIGGER_PDF]", "").strip()
             
+            # FIX: Stitch together all itinerary parts generated across separate turns
+            full_itinerary_chunks = []
+            found_summary = False
+            
+            for row in history_rows:  # Scan the database history rows
+                if row["role"] == "model":
+                    text = row["parts"][0]
+                    if "Final Plan Review" in text:
+                        found_summary = True
+                        continue  # Skip the summary block itself
+                    if found_summary:
+                        full_itinerary_chunks.append(text)
+            
+            # Append the fresh incoming final chunk (with trigger tag stripped)
+            full_itinerary_chunks.append(clean_itinerary)
+            
+            # Create the definitive comprehensive master text block
+            master_itinerary_text = "\n\n".join(full_itinerary_chunks)
+            
+            # Send the text breakdown gracefully to the Telegram interface
             if clean_itinerary:
-                await message.answer(clean_itinerary)
+                if len(clean_itinerary) > 4000:
+                    for chunk in [clean_itinerary[i:i+4000] for i in range(0, len(clean_itinerary), 4000)]:
+                        await message.answer(chunk)
+                else:
+                    await message.answer(clean_itinerary)
             
-            await message.answer("⚙️ *Compiling your custom handmap details into a PDF document...*")
+            await message.answer("⚙️ *Compiling your complete multi-turn itinerary details into a PDF document...*", parse_mode="Markdown")
             
-            # Feed the detailed itinerary text block straight into our upgraded XML-safe PDF constructor
-            pdf_data = create_itinerary_pdf(clean_itinerary)
+            # Pass the complete multi-message master text block directly to your ReportLab generator
+            pdf_data = create_itinerary_pdf(master_itinerary_text)
             input_file = BufferedInputFile(pdf_data.read(), filename="EasyTrip_Itinerary.pdf")
             
-            await message.answer_document(document=input_file, caption="✈️ Your printable travel companion document is ready! Safe travels!")
+            await message.answer_document(document=input_file, caption="✈️ Your complete printable travel companion document is ready! Safe travels!")
             
+            # Clear historical context so they can plan a fresh trip next time
             conn = sqlite3.connect(DB_FILE)
             cursor = conn.cursor()
             cursor.execute("DELETE FROM chat_history WHERE user_id = ?", (user_id,))
@@ -249,7 +273,7 @@ async def handle_chat_turn(message: types.Message):
             await message.answer(f"❌ Debug Error: {error_msg}")
             
     finally:
-        # ALWAYS unlock the user context so they can safely enter the chat stream again
+        # ALWAYS unlock the user context so they can continue sending messages
         processing_users.discard(user_id)
 
 # =====================================================================
