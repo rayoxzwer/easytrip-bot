@@ -270,7 +270,7 @@ async def handle_chat_turn(message: types.Message):
         if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
             await message.answer("⏳ *EasyTrip is taking a brief 60-second breather due to high traffic. Please wait one minute before sending your next message!*", parse_mode="Markdown")
         else:
-            await message.answer(f"❌ Debug Error: {error_msg}")
+            await message.answer(f"I'm processing your data 🤗 Wait, please!")
             
     finally:
         # ALWAYS unlock the user context so they can continue sending messages
