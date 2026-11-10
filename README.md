@@ -33,3 +33,64 @@
 ---
 
 ## 🏗️ System Architecture & Workflow
+[ Telegram User ] 
+       │
+       ▼
+[ Aiogram Bot Engine ] ──(State Lock: processing_users)──► [ Intercept Double-Submit ]
+       │
+       ▼
+[ SQLite Chat Logs ] ──(Fetch History)──► [ History-Stitching Engine ]
+       │                                             │
+       ▼                                             ▼
+[ Gemini 2.5 Flash ] ──(Response Stream)──► [ Check Trigger: [TRIGGER_PDF] ]
+                                                     │
+                                       ┌─────────────┴─────────────┐
+                                       ▼                           ▼
+                             [ Standard Text Reply ]     [ ReportLab PDF Engine ]
+                                                                   │
+                                                                   ▼
+                                                         [ EasyTrip_Itinerary.pdf ]
+🚀 Quick Start & Local Setup
+
+Prerequisites
+Python 3.11+
+Docker (optional, for containerized run)
+Telegram Bot Token (from @BotFather)
+Google AI Studio API Key
+
+Installation Steps
+Clone the repository:
+
+git clone [https://github.com/your-username/EasyTrip.git](https://github.com/your-username/EasyTrip.git)
+cd EasyTrip
+
+Set up virtual environment:
+
+Linux/macOS: python -m venv venv && source venv/bin/activate
+Windows: python -m venv venv && venv\Scripts\activate
+pip install -r requirements.txt
+
+Configure Environment Variables:
+
+Create a .env file in the root directory:
+
+TELEGRAM_BOT_TOKEN=telegram_bot_token_here
+GEMINI_API_KEY=gemini_api_key_here
+
+Run the bot locally:
+
+python app.py
+
+🐳 Running with Docker
+Build Image: docker build -t easytrip-bot .
+Run Container: docker run -d --name easytrip --env-file .env easytrip-bot
+
+⚙️ Environment & Production Setup
+
+When deploying to platforms like Render.com:
+Build Command: pip install -r requirements.txt
+Start Command: python app.py
+Environment Variables: Ensure TELEGRAM_BOT_TOKEN and GEMINI_API_KEY are configured in settings.
+
+📜 License
+Distributed under the MIT License. See LICENSE for more information.
